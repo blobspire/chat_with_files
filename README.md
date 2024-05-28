@@ -8,17 +8,17 @@ This project allows you to locally upload PDF's and interact with their contents
 
 ## Features
 
-•	Upload PDF files, vectorize their contents, and store the embeddings in a local vector database.
-•	Ask the LLM questions based on the PDF contents.
-•	Clear the knowledge base to remove all uploaded content and the chat history.
+* Upload PDF files, vectorize their contents, and store the embeddings in a local vector database.
+* Ask the LLM questions based on the PDF contents.
+* Clear the knowledge base to remove all uploaded content and the chat history.
 
 
 ## Requirements
 
-•	Python 3.9 or later
-•	Streamlit
-•	embedchain
-•	ollama (assumed to be running on localhost:11434)
+* Python 3.9 or later
+* Streamlit
+* embedchain
+* ollama (assumed to be running on localhost:11434)
 
 
 ## Installation
