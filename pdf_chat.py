@@ -69,16 +69,25 @@ if pdf_file:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ask a question using the pdf and display answer
-prompt = st.text_input("What would you like to ask the PDF?")
-if prompt:
-    answer = app.chat(prompt) # send prompt to app and recieve answer
-    st.session_state.chat_history.insert(0, (prompt, answer)) # store query and response into chat history
+# display chat feed in box on gui
+with st.expander("Chat History", expanded=True):
+    for query, response in st.session_state.chat_history:
+        st.write(f"**You:** {query}")
+        st.write(f"**LLM:** {response}")
 
-# display chat history on gui
-for query, response in st.session_state.chat_history:
-    st.write(f"**You:** {query}")
-    st.write(f"**LLM:** {response}")
+# initialize prompt within session state
+if "prompt" not in st.session_state:
+    st.session_state.prompt = ""
+
+# ask a question using the pdf and display answer
+def submit_prompt():
+    prompt = st.session_state.prompt
+    if prompt:
+        answer = app.chat(prompt) # send prompt to app and recieve answer
+        st.session_state.chat_history.append((prompt, answer)) # store query and response into chat history
+        st.session_state.prompt = "" # reset the prompt after it and answer are added to chat history
+
+prompt = st.text_input("What would you like to ask the PDF?", key="prompt", on_change=submit_prompt)
 
 # add button to clear knowledge base
 if st.button("Clear Knowledge Base"):
@@ -90,5 +99,6 @@ if st.button("Clear Knowledge Base"):
             app.reset() # clear the rag data
             st.session_state.chat_history = [] # clear the chat history
             st.success("Successfully cleared Knowledge Base.")
+            st.rerun() # update the display
     except Exception as e:
         st.error(f"An error occurred while clearing the Knowledge Base: {e}")
