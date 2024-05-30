@@ -65,11 +65,20 @@ if pdf_file:
     os.remove(f.name) # delete the temp file (its contents was added to the db so it's no longer needed)
     st.success(f"Successfully uploaded {pdf_file.name}!") # display success message on gui
 
+# initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 # ask a question using the pdf and display answer
 prompt = st.text_input("What would you like to ask the PDF?")
 if prompt:
     answer = app.chat(prompt) # send prompt to app and recieve answer
-    st.write(answer) # display answer on gui
+    st.session_state.chat_history.append((prompt, answer)) # store query and response into chat history
+
+# display chat history on gui
+for query, response in st.session_state.chat_history:
+    st.write(f"**You:** {query}")
+    st.write(f"**LLM:** {response}")
 
 # add button to clear knowledge base
 if st.button("Clear Knowledge Base"):
@@ -78,7 +87,8 @@ if st.button("Clear Knowledge Base"):
             shutil.rmtree(db_path) # delete temp dir
             db_path = create_temp_dir() # get new temp dir
             app = create_embedchain_app(dir_path=db_path) # create new app that will use the new temp dir
-            app.reset() # clears the rag and chat history
+            app.reset() # clear the rag data
+            st.session_state.chat_history = [] # clear the chat history
             st.success("Successfully cleared Knowledge Base.")
     except Exception as e:
         st.error(f"An error occurred while clearing the Knowledge Base: {e}")
