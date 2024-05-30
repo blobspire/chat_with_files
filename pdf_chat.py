@@ -43,7 +43,7 @@ def create_embedchain_app(dir_path):
             }
         }
     } # ollama hosts on port 11434
-    return App.from_config(config = embedchain_config)
+    return App.from_config(config=embedchain_config)
 
 # create an instance of the embdedchain app
 app = create_embedchain_app(dir_path=db_path)
@@ -69,25 +69,24 @@ if pdf_file:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# display chat feed in box on gui
-with st.expander("Chat History", expanded=True):
-    for query, response in st.session_state.chat_history:
-        st.write(f"**You:** {query}")
-        st.write(f"**LLM:** {response}")
-
-# initialize prompt within session state
-if "prompt" not in st.session_state:
-    st.session_state.prompt = ""
+# display chat feed on gui
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 # ask a question using the pdf and display answer
-def submit_prompt():
-    prompt = st.session_state.prompt
-    if prompt:
-        answer = app.chat(prompt) # send prompt to app and recieve answer
-        st.session_state.chat_history.append((prompt, answer)) # store query and response into chat history
-        st.session_state.prompt = "" # reset the prompt after it and answer are added to chat history
-
-prompt = st.text_input("What would you like to ask the PDF?", key="prompt", on_change=submit_prompt)
+if prompt := st.chat_input("What would you like to ask the PDF?"):
+    # add the prompt to chat history
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+    # display prompt as 'user'
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    # get and display llm response
+    answer = app.chat(prompt) # send prompt to app and recieve answer
+    st.session_state.chat_history.append({"role": "assistant", "content": answer}) # add response to chat history
+    # display response on gui
+    with st.chat_message("assistant"):
+        st.markdown(answer)
 
 # add button to clear knowledge base
 if st.button("Clear Knowledge Base"):
