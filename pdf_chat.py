@@ -73,7 +73,7 @@ if "chat_history" not in st.session_state:
 prompt = st.text_input("What would you like to ask the PDF?")
 if prompt:
     answer = app.chat(prompt) # send prompt to app and recieve answer
-    st.session_state.chat_history.append((prompt, answer)) # store query and response into chat history
+    st.session_state.chat_history.insert(0, (prompt, answer)) # store query and response into chat history
 
 # display chat history on gui
 for query, response in st.session_state.chat_history:
