@@ -43,7 +43,7 @@ def create_embedchain_app(dir_path):
             }
         }
     } # ollama hosts on port 11434
-    return App.from_config(config = embedchain_config)
+    return App.from_config(config=embedchain_config)
 
 # create an instance of the embdedchain app
 app = create_embedchain_app(dir_path=db_path)
@@ -65,11 +65,28 @@ if pdf_file:
     os.remove(f.name) # delete the temp file (its contents was added to the db so it's no longer needed)
     st.success(f"Successfully uploaded {pdf_file.name}!") # display success message on gui
 
+# initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# display chat feed on gui
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
 # ask a question using the pdf and display answer
-prompt = st.text_input("What would you like to ask the PDF?")
-if prompt:
+if prompt := st.chat_input("What would you like to ask the PDF?"):
+    # add the prompt to chat history
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+    # display prompt as 'user'
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    # get and display llm response
     answer = app.chat(prompt) # send prompt to app and recieve answer
-    st.write(answer) # display answer on gui
+    st.session_state.chat_history.append({"role": "assistant", "content": answer}) # add response to chat history
+    # display response on gui
+    with st.chat_message("assistant"):
+        st.markdown(answer)
 
 # add button to clear knowledge base
 if st.button("Clear Knowledge Base"):
@@ -78,7 +95,9 @@ if st.button("Clear Knowledge Base"):
             shutil.rmtree(db_path) # delete temp dir
             db_path = create_temp_dir() # get new temp dir
             app = create_embedchain_app(dir_path=db_path) # create new app that will use the new temp dir
-            app.reset() # clears the rag and chat history
+            app.reset() # clear the rag data
+            st.session_state.chat_history = [] # clear the chat history
             st.success("Successfully cleared Knowledge Base.")
+            st.rerun() # update the display
     except Exception as e:
         st.error(f"An error occurred while clearing the Knowledge Base: {e}")
