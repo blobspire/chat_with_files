@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import streamlit as st
 from embedchain import App
+import ollama
 
 # create a new temp directory and return the path
 def create_temp_dir():
@@ -65,6 +66,20 @@ if pdf_file:
     os.remove(f.name) # delete the temp file (its contents was added to the db so it's no longer needed)
     st.success(f"Successfully uploaded {pdf_file.name}!") # display success message on gui
 
+# add button to clear knowledge base
+if st.button("Clear Knowledge Base"):
+    try:
+        if os.path.exists(db_path):
+            shutil.rmtree(db_path) # delete temp dir
+            db_path = create_temp_dir() # get new temp dir
+            app = create_embedchain_app(dir_path=db_path) # create new app that will use the new temp dir
+            app.reset() # clear the rag data
+            st.session_state.chat_history = [] # clear the chat history
+            st.success("Successfully cleared Knowledge Base.")
+            st.rerun() # update the display
+    except Exception as e:
+        st.error(f"An error occurred while clearing the Knowledge Base: {e}")
+
 # initialize chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -81,23 +96,25 @@ if prompt := st.chat_input("What would you like to ask the PDF?"):
     # display prompt as 'user'
     with st.chat_message("user"):
         st.markdown(prompt)
-    # get and display llm response
-    answer = app.chat(prompt) # send prompt to app and recieve answer
-    st.session_state.chat_history.append({"role": "assistant", "content": answer}) # add response to chat history
-    # display response on gui
-    with st.chat_message("assistant"):
-        st.markdown(answer)
 
-# add button to clear knowledge base
-if st.button("Clear Knowledge Base"):
-    try:
-        if os.path.exists(db_path):
-            shutil.rmtree(db_path) # delete temp dir
-            db_path = create_temp_dir() # get new temp dir
-            app = create_embedchain_app(dir_path=db_path) # create new app that will use the new temp dir
-            app.reset() # clear the rag data
-            st.session_state.chat_history = [] # clear the chat history
-            st.success("Successfully cleared Knowledge Base.")
-            st.rerun() # update the display
-    except Exception as e:
-        st.error(f"An error occurred while clearing the Knowledge Base: {e}")
+    # get and display llm response
+    answer = ""  # intialize response holder so that it is preserved outside of the stream loop
+
+    # send prompt to llm and receive stream of answer
+    stream = ollama.chat(
+        model = 'llama3',
+        messages = [{'role': 'user', 'content': prompt}],
+        stream = True
+    )
+
+    # display the streaming response
+    with st.chat_message("assistant"):
+        response_placeholder = st.empty() # create a placeholder within the chat message
+        for chunk in stream:
+            if "content" in chunk.get("message", {}):
+                content = chunk["message"]["content"]
+                answer += content # build the answer
+                response_placeholder.markdown(answer) # update the placeholder with the answer as it builds
+
+    # add the full answer to the chat history
+    st.session_state.chat_history.append({"role": "assistant", "content": answer})
